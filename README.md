@@ -8,6 +8,5 @@ Data source:
 
 11 distinct kingdoms utilised in paper: Archaea, viral, plantae, phage, vertebrate, mammalia, bacteria, primate, plasmodia, Invertebrate and rodentia
 
-In codon_ML_project.py
+In kingdom_predictor.py
   Data was pre-processed and partitioned, with 80% of the dataset used for training the model and the remaining 20% reserved for testing the model accuracy. 
-  The model was built using a sequential neural network with a dense layer containing 50 neurons, a final output layer of 11 neurons for classification and it was trained over 10 epochs. This model had only a 53% accuracy so it was further optimised. 
