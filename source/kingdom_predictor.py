@@ -52,12 +52,39 @@ def partition_data(codon_df, labels_1_hot):
     return training_inputs, training_labels, testing_inputs, testing_labels
 
 
+def model_builder(hp):
+    model = Sequential()
+    model.add(Dense(50, input_dim=64, activation='relu'))
+    hp_activation = hp.Choice('activations', values=["relu", "sigmoid", "tanh", "selu"])
+    hp_layers = hp.Int('number_of_layers', min_value=1, max_value=20) #default of 1 for step
+    for i in range(hp_layers): #adding certain number of hidden layers, pick between 1 and 20 and test between 1 and 100 nodes for each of 20 layers
+        model.add(Dense(units=hp.Int(f"units_{i}", min_value=1, max_value=1000, step=100), activation=hp_activation))
+
+    model.add(Dense(11, activation="softmax"))
+    model.compile(loss="categorical_crossentropy", optimizer="adam", metrics=["accuracy"])
+    return model
+
+
 def main():
     csv_file_path = "data/codon_usage.csv"
-    print(csv_file_path)
+    # Data Preprocessing
     codon_df, labels_1_hot = get_pre_processed_data(csv_file_path)
+
+    # Data Partitioning
     training_inputs, training_labels, testing_inputs, testing_labels = partition_data(codon_df, labels_1_hot)
 
+    # Identify model hyperparameters 
+    tuner = kt.Hyperband(model_builder, objective="val_accuracy", max_epochs=10, factor=3, directory="dir", project_name="simple_range_1_20_hidden_layers" ) #factor helps hyperparameter tuning
+    stop_early = EarlyStopping(monitor="val_loss", patience=3) #patience is number of Epochs before determining if it improves #early stopper - reduce epochs if not improving
+    tuner.search(training_inputs, training_labels, epochs=10, validation_data=(testing_inputs, testing_labels), callbacks=[stop_early])
+    best_hps = tuner.get_best_hyperparameters()[0]
+
+    # Build model based on hyperparameters identified
+    model = tuner.hypermodel.build(best_hps)
+    print("Model Summary")
+    print(model.summary())
+    model.fit(training_inputs, training_labels, epochs=10, validation_data=(testing_inputs, testing_labels), callbacks=[stop_early])
+    model.save("models/codon_range_1_20_hidden_layer2.keras")
 
 if __name__ == "__main__":
     main()
